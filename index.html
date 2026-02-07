@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Localizador de Medidores</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 30px;
+}
+input {
+    padding: 8px;
+    width: 300px;
+    font-size: 16px;
+}
+ul {
+    border: 1px solid #ccc;
+    width: 300px;
+    list-style: none;
+    padding: 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+li {
+    padding: 6px;
+    cursor: pointer;
+}
+li:hover {
+    background-color: #eee;
+}
+#resultado {
+    margin-top: 20px;
+}
+</style>
+</head>
+<body>
+
+<h2>Localizador de Medidores</h2>
+
+<input type="file" id="fileInput"><br><br>
+
+<input type="text" id="search" placeholder="Digite 4 ou mais dígitos do medidor">
+
+<ul id="lista"></ul>
+
+<div id="resultado"></div>
+
+<script>
+let dados = [];
+
+document.getElementById("fileInput").addEventListener("change", function(e) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+        dados = [];
+
+        for (let i = 1; i < json.length; i++) {
+            let medidor = json[i][4]; // Coluna E
+            let coordenadas = json[i][3]; // Coluna D
+
+            if (medidor && coordenadas) {
+                dados.push({
+                    medidor: medidor.toString(),
+                    coordenadas: coordenadas
+                });
+            }
+        }
+
+        alert("Planilha carregada com sucesso!");
+    };
+    reader.readAsArrayBuffer(e.target.files[0]);
+});
+
+document.getElementById("search").addEventListener("input", function() {
+    const termo = this.value;
+    const lista = document.getElementById("lista");
+    lista.innerHTML = "";
+
+    if (termo.length < 4) return;
+
+    const resultados = dados.filter(item => item.medidor.includes(termo));
+
+    resultados.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item.medidor;
+        li.onclick = function() {
+            mostrarResultado(item);
+        };
+        lista.appendChild(li);
+    });
+});
+
+function mostrarResultado(item) {
+    const coords = item.coordenadas.replace(" ", "");
+    const link = `https://www.google.com/maps?q=${coords}`;
+
+    document.getElementById("resultado").innerHTML = `
+        <p><strong>Medidor:</strong> ${item.medidor}</p>
+        <p><strong>Coordenadas:</strong> ${coords}</p>
+        <a href="${link}" target="_blank">Abrir no Google Maps</a>
+    `;
+}
+</script>
+
+</body>
+</html>
